@@ -1,0 +1,665 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AttendIQ - Smart Role-Based Attendance Management</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@500;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="style.css">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js" defer></script>
+    <script src="script.js" defer></script>
+</head>
+<body>
+    <div id="spotlight" class="spotlight-overlay"></div>
+
+    <!-- LOGIN CONTAINER -->
+    <div id="login-view" class="login-wrapper">
+        <div class="glass-card login-card tilt-card" data-tilt>
+            <div class="login-brand">
+                <div class="brand-logo-icon">IQ</div>
+                <h1>AttendIQ</h1>
+                <p>Smart Role-Based Attendance Management System</p>
+            </div>
+            
+            <form id="login-form">
+                <div class="form-group">
+                    <label for="login-username">Username</label>
+                    <input type="text" id="login-username" placeholder="Enter username (e.g. admin or roll no)" required class="form-control">
+                </div>
+                <div class="form-group">
+                    <label for="login-password">Password</label>
+                    <input type="password" id="login-password" placeholder="Enter password" required class="form-control">
+                </div>
+                <div id="login-error" class="login-error-msg hidden"></div>
+                <button type="submit" class="btn btn-primary btn-block btn-glow">
+                    <span>Sign In to Dashboard</span>
+                </button>
+            </form>
+
+            <div class="login-footer-hint">
+                <small>Default Admin: <code>admin</code> / <code>admin123</code></small>
+            </div>
+        </div>
+    </div>
+
+    <!-- MAIN APP WRAPPER -->
+    <div id="app-view" class="app-container hidden">
+        <!-- Sidebar Navigation -->
+        <nav class="sidebar glass-panel">
+            <div class="sidebar-header">
+                <div class="brand-logo-sm">IQ</div>
+                <h2>AttendIQ</h2>
+            </div>
+            
+            <!-- Global Semester Switcher -->
+            <div class="sidebar-semester-box">
+                <label for="global-semester-select">Active Semester</label>
+                <select id="global-semester-select" class="form-control select-sm">
+                    <option value="">Loading Semesters...</option>
+                </select>
+            </div>
+
+            <ul class="nav-links" id="nav-links">
+                <!-- Dynamic Navigation Items based on Role -->
+            </ul>
+            
+            <div class="sidebar-footer">
+                <div class="user-profile-badge">
+                    <div class="user-avatar" id="user-avatar-initials">U</div>
+                    <div class="user-details">
+                        <span class="user-name" id="user-display-name">User Name</span>
+                        <span class="user-role-chip" id="user-role-chip">Admin</span>
+                    </div>
+                </div>
+                <div class="footer-actions">
+                    <label class="theme-switch" title="Toggle Light/Dark Theme">
+                        <input type="checkbox" id="dark-mode-toggle" checked>
+                        <span class="slider round"></span>
+                    </label>
+                    <button class="btn btn-secondary btn-icon" id="btn-logout" title="Sign Out">
+                        <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path>
+                            <polyline points="16 17 21 12 16 7"></polyline>
+                            <line x1="21" y1="12" x2="9" y2="12"></line>
+                        </svg>
+                    </button>
+                </div>
+            </div>
+        </nav>
+
+        <!-- Main Content Area -->
+        <main class="main-content">
+            
+            <!-- ADMIN: DASHBOARD OVERVIEW -->
+            <section id="admin-overview-section" class="content-section">
+                <header class="section-header">
+                    <div>
+                        <h1>College Attendance Overview</h1>
+                        <p class="subtitle">System-wide analytics and shortage tracking</p>
+                    </div>
+                </header>
+
+                <div class="metrics-grid">
+                    <div class="card glass-card metric-card tilt-card" data-tilt>
+                        <div class="metric-icon icon-students">👥</div>
+                        <div class="metric-info">
+                            <span class="metric-label">Enrolled Students</span>
+                            <span class="metric-value counter-num" id="stat-enrolled">0</span>
+                        </div>
+                    </div>
+                    <div class="card glass-card metric-card tilt-card" data-tilt>
+                        <div class="metric-icon icon-pct">📊</div>
+                        <div class="metric-info">
+                            <span class="metric-label">College Average</span>
+                            <span class="metric-value"><span class="counter-num" id="stat-avg-pct">0</span>%</span>
+                        </div>
+                    </div>
+                    <div class="card glass-card metric-card tilt-card" data-tilt>
+                        <div class="metric-icon icon-risk">⚠️</div>
+                        <div class="metric-info">
+                            <span class="metric-label">Below 75% Shortage</span>
+                            <span class="metric-value text-danger counter-num" id="stat-risk-count">0</span>
+                        </div>
+                    </div>
+                    <div class="card glass-card metric-card tilt-card" data-tilt>
+                        <div class="metric-icon icon-records">📝</div>
+                        <div class="metric-info">
+                            <span class="metric-label">Total Logs Recorded</span>
+                            <span class="metric-value counter-num" id="stat-total-records">0</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="dashboard-grid">
+                    <div class="card glass-card chart-card tilt-card" data-tilt>
+                        <h3>Absence Reason Distribution</h3>
+                        <div class="chart-wrapper">
+                            <canvas id="absenceReasonChart"></canvas>
+                        </div>
+                    </div>
+                    <div class="card glass-card list-card tilt-card" data-tilt>
+                        <h3>At-Risk Students (&lt; 75% Attendance)</h3>
+                        <div class="table-scroll-container">
+                            <table class="data-table">
+                                <thead>
+                                    <tr>
+                                        <th>Student</th>
+                                        <th>Roll No</th>
+                                        <th>Current %</th>
+                                        <th>Classes Needed</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="at-risk-table-body">
+                                    <tr><td colspan="4" class="text-center">Loading at-risk list...</td></tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- ADMIN: MARK ATTENDANCE -->
+            <section id="admin-mark-section" class="content-section">
+                <header class="section-header">
+                    <div>
+                        <h1>Mark Subject Attendance</h1>
+                        <p class="subtitle">Select date &amp; subject, toggle status, and tag absence reasons</p>
+                    </div>
+                </header>
+
+                <div class="card glass-card filter-card">
+                    <div class="form-row-grid">
+                        <div class="form-group">
+                            <label for="mark-subject-select">Select Subject</label>
+                            <select id="mark-subject-select" class="form-control">
+                                <option value="">Loading Subjects...</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label for="mark-date-input">Attendance Date</label>
+                            <input type="date" id="mark-date-input" class="form-control">
+                        </div>
+                        <div class="form-group align-self-end">
+                            <button class="btn btn-secondary" id="btn-mark-all-present">Mark All Present</button>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="card glass-card table-card">
+                    <div class="table-actions-header">
+                        <h3>Enrolled Students Roster</h3>
+                        <span class="badge" id="roster-count-badge">0 Students</span>
+                    </div>
+
+                    <div class="table-scroll-container">
+                        <table class="data-table" id="mark-roster-table">
+                            <thead>
+                                <tr>
+                                    <th>Roll No</th>
+                                    <th>Student Name</th>
+                                    <th>Department</th>
+                                    <th>Status Toggle</th>
+                                    <th>Absence Reason</th>
+                                    <th>Reason Note</th>
+                                </tr>
+                            </thead>
+                            <tbody id="mark-roster-body">
+                                <tr><td colspan="6" class="text-center">Select a subject to load students.</td></tr>
+                            </tbody>
+                        </table>
+                    </div>
+
+                    <div class="card-footer-actions">
+                        <button type="button" class="btn btn-primary btn-lg btn-glow" id="btn-submit-attendance">
+                            <span>Save Attendance Record</span>
+                        </button>
+                    </div>
+                </div>
+            </section>
+
+            <!-- ADMIN: STUDENT REPORTS & CSV -->
+            <section id="admin-reports-section" class="content-section">
+                <header class="section-header">
+                    <div>
+                        <h1>Semester Student Reports</h1>
+                        <p class="subtitle">Detailed attendance reports, absence breakdown &amp; CSV export</p>
+                    </div>
+                    <button class="btn btn-secondary" id="btn-export-csv">
+                        📥 Export Report to CSV
+                    </button>
+                </header>
+
+                <div class="card glass-card filter-card">
+                    <div class="form-row-grid">
+                        <div class="form-group flex-2">
+                            <label for="report-student-select">Select Student</label>
+                            <select id="report-student-select" class="form-control">
+                                <option value="">Select a student...</option>
+                            </select>
+                        </div>
+                        <div class="form-group flex-1">
+                            <label for="report-search-subject">Filter Subject</label>
+                            <input type="text" id="report-search-subject" placeholder="Search subject..." class="form-control">
+                        </div>
+                    </div>
+                </div>
+
+                <div id="student-report-details" class="hidden">
+                    <div class="metrics-grid">
+                        <div class="card glass-card metric-card">
+                            <span class="metric-label">Total Classes Held</span>
+                            <span class="metric-value counter-num" id="rep-total-classes">0</span>
+                        </div>
+                        <div class="card glass-card metric-card">
+                            <span class="metric-label">Classes Attended</span>
+                            <span class="metric-value text-success counter-num" id="rep-attended">0</span>
+                        </div>
+                        <div class="card glass-card metric-card">
+                            <span class="metric-label">Days Absent</span>
+                            <span class="metric-value text-danger counter-num" id="rep-absent">0</span>
+                        </div>
+                        <div class="card glass-card metric-card">
+                            <span class="metric-label">Overall Attendance</span>
+                            <span class="metric-value"><span class="counter-num" id="rep-percentage">0</span>%</span>
+                        </div>
+                    </div>
+
+                    <div class="dashboard-grid">
+                        <div class="card glass-card">
+                            <h3>Subject Breakdown</h3>
+                            <div class="table-scroll-container">
+                                <table class="data-table">
+                                    <thead>
+                                        <tr>
+                                            <th>Subject</th>
+                                            <th>Held</th>
+                                            <th>Attended</th>
+                                            <th>Absent</th>
+                                            <th>Percentage</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="rep-subjects-body">
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+
+                        <div class="card glass-card">
+                            <div class="card-header-flex">
+                                <h3>Absent Records &amp; Reasons</h3>
+                                <span class="badge badge-warning" id="rep-absence-count-chip">0 Absences</span>
+                            </div>
+                            <div class="absence-chips-container" id="rep-absence-chips-list">
+                                <p class="text-muted">No absence records found.</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- ADMIN: USER MANAGEMENT -->
+            <section id="admin-users-section" class="content-section">
+                <header class="section-header">
+                    <div>
+                        <h1>User Account Management</h1>
+                        <p class="subtitle">Create Admin &amp; Student accounts, reset passwords, bulk CSV import</p>
+                    </div>
+                    <div class="header-buttons">
+                        <button class="btn btn-secondary" id="btn-open-bulk-import">📄 CSV Bulk Import</button>
+                        <button class="btn btn-primary btn-glow" id="btn-open-create-user">+ Create User Account</button>
+                    </div>
+                </header>
+
+                <div class="card glass-card table-card">
+                    <div class="table-scroll-container">
+                        <table class="data-table" id="users-table">
+                            <thead>
+                                <tr>
+                                    <th>Username</th>
+                                    <th>Full Name</th>
+                                    <th>Role</th>
+                                    <th>Roll Number</th>
+                                    <th>Department</th>
+                                    <th>Status</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody id="users-table-body">
+                                <tr><td colspan="7" class="text-center">Loading users...</td></tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </section>
+
+            <!-- ADMIN: SEMESTER & SUBJECT MANAGEMENT -->
+            <section id="admin-academic-section" class="content-section">
+                <header class="section-header">
+                    <div>
+                        <h1>Semester &amp; Subject Management</h1>
+                        <p class="subtitle">Manage academic terms, create subjects, assign admin owners, enroll students</p>
+                    </div>
+                </header>
+
+                <div class="dashboard-grid">
+                    <!-- Semesters Card -->
+                    <div class="card glass-card">
+                        <div class="card-header-flex">
+                            <h3>Semesters</h3>
+                            <button class="btn btn-sm btn-primary" id="btn-open-create-semester">+ Add Semester</button>
+                        </div>
+                        <div class="table-scroll-container">
+                            <table class="data-table">
+                                <thead>
+                                    <tr>
+                                        <th>Sem #</th>
+                                        <th>Start Date</th>
+                                        <th>End Date</th>
+                                        <th>Status</th>
+                                        <th>Action</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="semesters-table-body">
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+
+                    <!-- Subjects Card -->
+                    <div class="card glass-card">
+                        <div class="card-header-flex">
+                            <h3>Subjects in Active Semester</h3>
+                            <button class="btn btn-sm btn-primary" id="btn-open-create-subject">+ Add Subject</button>
+                        </div>
+                        <div class="table-scroll-container">
+                            <table class="data-table">
+                                <thead>
+                                    <tr>
+                                        <th>Subject Name</th>
+                                        <th>Assigned Admin</th>
+                                        <th>Action</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="subjects-table-body">
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Student Enrollment Card -->
+                <div class="card glass-card margin-top">
+                    <div class="card-header-flex">
+                        <h3>Student Semester Enrollment Manager</h3>
+                        <div class="form-inline">
+                            <label>Semester:</label>
+                            <select id="enrollment-semester-select" class="form-control select-sm"></select>
+                        </div>
+                    </div>
+                    <div class="enrollment-manager-grid">
+                        <div class="enrollment-column">
+                            <h4>Available Active Students</h4>
+                            <div class="checklist-scroll" id="unenrolled-students-list"></div>
+                            <button class="btn btn-sm btn-success margin-top-sm" id="btn-enroll-selected">Enroll Selected &rarr;</button>
+                        </div>
+                        <div class="enrollment-column">
+                            <h4>Currently Enrolled Students</h4>
+                            <div class="checklist-scroll" id="enrolled-students-list"></div>
+                            <button class="btn btn-sm btn-danger margin-top-sm" id="btn-unenroll-selected">&larr; Unenroll Selected</button>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- ADMIN: AUDIT LOG -->
+            <section id="admin-audit-section" class="content-section">
+                <header class="section-header">
+                    <div>
+                        <h1>Administrative Audit Trail</h1>
+                        <p class="subtitle">System accountability log for user edits, semester changes, and attendance marking</p>
+                    </div>
+                </header>
+
+                <div class="card glass-card table-card">
+                    <div class="table-scroll-container">
+                        <table class="data-table">
+                            <thead>
+                                <tr>
+                                    <th>Timestamp</th>
+                                    <th>Admin</th>
+                                    <th>Action Type</th>
+                                    <th>Target Table</th>
+                                    <th>Details</th>
+                                </tr>
+                            </thead>
+                            <tbody id="audit-table-body">
+                                <tr><td colspan="5" class="text-center">Loading audit logs...</td></tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </section>
+
+            <!-- STUDENT: DASHBOARD & 75% CALCULATOR -->
+            <section id="student-dashboard-section" class="content-section">
+                <header class="section-header">
+                    <div>
+                        <h1>Student Portal</h1>
+                        <p class="subtitle" id="student-welcome-subtitle">Welcome to your attendance insights dashboard</p>
+                    </div>
+                </header>
+
+                <!-- Student Summary & Gauge -->
+                <div class="dashboard-grid">
+                    <!-- Gauge Card -->
+                    <div class="card glass-card gauge-card tilt-card" data-tilt>
+                        <h3>Overall Attendance Gauge</h3>
+                        <div class="progress-gauge-wrapper">
+                            <svg class="progress-ring" width="160" height="160">
+                                <circle class="progress-ring__circle-bg" stroke-width="12" fill="transparent" r="68" cx="80" cy="80"/>
+                                <circle class="progress-ring__circle" id="student-gauge-ring" stroke-width="12" fill="transparent" r="68" cx="80" cy="80"/>
+                            </svg>
+                            <div class="gauge-center-text">
+                                <span id="student-gauge-pct" class="gauge-pct-num counter-num">0</span><span class="pct-symbol">%</span>
+                                <span class="gauge-req-label">Target: 75%</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- 75% Calculator Card -->
+                    <div class="card glass-card calc-card tilt-card" data-tilt>
+                        <h3>75% Attendance Projection Calculator</h3>
+                        <div id="calculator-status-box" class="calc-status-box">
+                            <div class="spinner"></div>
+                            <span>Calculating requirement...</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="metrics-grid margin-top">
+                    <div class="card glass-card metric-card">
+                        <span class="metric-label">Total Classes Held</span>
+                        <span class="metric-value counter-num" id="stu-stat-held">0</span>
+                    </div>
+                    <div class="card glass-card metric-card">
+                        <span class="metric-label">Classes Attended</span>
+                        <span class="metric-value text-success counter-num" id="stu-stat-attended">0</span>
+                    </div>
+                    <div class="card glass-card metric-card">
+                        <span class="metric-label">Days Absent</span>
+                        <span class="metric-value text-danger counter-num" id="stu-stat-absent">0</span>
+                    </div>
+                </div>
+
+                <!-- My Enrolled Subjects (Admin-Assigned) -->
+                <div class="card glass-card margin-top">
+                    <h3>My Enrolled Subjects (Admin Assigned)</h3>
+                    <div class="table-scroll-container">
+                        <table class="data-table">
+                            <thead>
+                                <tr>
+                                    <th>Subject Name</th>
+                                    <th>Assigned Admin / Faculty</th>
+                                </tr>
+                            </thead>
+                            <tbody id="student-enrolled-subjects-body">
+                                <tr><td colspan="2" class="text-center">Loading enrolled subjects...</td></tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <!-- Subject Grid & Absences -->
+                <div class="dashboard-grid margin-top">
+                    <div class="card glass-card">
+                        <h3>Subject Attendance Breakdown</h3>
+                        <div class="subjects-grid" id="student-subjects-grid">
+                            <p class="text-muted">Loading subjects...</p>
+                        </div>
+                    </div>
+
+                    <div class="card glass-card">
+                        <h3>My Absence History &amp; Reason Tags</h3>
+                        <div class="absence-chips-container" id="student-absence-history-list">
+                            <p class="text-muted">Loading absence history...</p>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+        </main>
+    </div>
+
+    <!-- MODALS -->
+    <div class="modal-backdrop hidden" id="modal-backdrop"></div>
+
+    <!-- Create/Edit User Modal -->
+    <div class="modal hidden" id="user-modal">
+        <div class="modal-header">
+            <h2 id="user-modal-title">Create Account</h2>
+            <button class="close-btn" data-close="user-modal">&times;</button>
+        </div>
+        <div class="modal-body">
+            <form id="user-form">
+                <input type="hidden" id="user-modal-id">
+                <div class="form-group">
+                    <label>Role</label>
+                    <select id="user-modal-role" class="form-control" required>
+                        <option value="student">Student</option>
+                        <option value="admin">Admin</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>Username</label>
+                    <input type="text" id="user-modal-username" required class="form-control" placeholder="e.g. CS202601">
+                </div>
+                <div class="form-group">
+                    <label>Full Name</label>
+                    <input type="text" id="user-modal-fullname" required class="form-control" placeholder="e.g. John Doe">
+                </div>
+                <div class="form-group">
+                    <label>Password <small>(Leave blank to keep current password when editing)</small></label>
+                    <input type="password" id="user-modal-password" class="form-control" placeholder="Set password">
+                </div>
+                <div class="form-group">
+                    <label>Roll Number <small>(Students only)</small></label>
+                    <input type="text" id="user-modal-roll" class="form-control" placeholder="e.g. 2026-CS-01">
+                </div>
+                <div class="form-group">
+                    <label>Department</label>
+                    <input type="text" id="user-modal-dept" class="form-control" placeholder="e.g. Computer Science">
+                </div>
+                <div class="modal-actions">
+                    <button type="button" class="btn btn-secondary" data-close="user-modal">Cancel</button>
+                    <button type="submit" class="btn btn-primary">Save User</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Bulk CSV Import Modal -->
+    <div class="modal hidden" id="bulk-import-modal">
+        <div class="modal-header">
+            <h2>Bulk Import Students via CSV</h2>
+            <button class="close-btn" data-close="bulk-import-modal">&times;</button>
+        </div>
+        <div class="modal-body">
+            <p>Upload a CSV file containing columns: <code>roll_no, full_name, username, department</code>.</p>
+            <form id="bulk-import-form">
+                <div class="form-group">
+                    <label>Select CSV File</label>
+                    <input type="file" id="csv-file-input" accept=".csv" class="form-control">
+                </div>
+                <div class="form-group">
+                    <label>Target Semester for Automatic Enrollment</label>
+                    <select id="csv-semester-select" class="form-control"></select>
+                </div>
+                <div class="modal-actions">
+                    <button type="button" class="btn btn-secondary" data-close="bulk-import-modal">Cancel</button>
+                    <button type="submit" class="btn btn-primary">Upload &amp; Process CSV</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Create Semester Modal -->
+    <div class="modal hidden" id="semester-modal">
+        <div class="modal-header">
+            <h2>Create Academic Semester</h2>
+            <button class="close-btn" data-close="semester-modal">&times;</button>
+        </div>
+        <div class="modal-body">
+            <form id="semester-form">
+                <div class="form-group">
+                    <label>Semester Number</label>
+                    <input type="number" id="sem-number-input" min="1" max="12" required class="form-control" placeholder="e.g. 1">
+                </div>
+                <div class="form-group">
+                    <label>Start Date</label>
+                    <input type="date" id="sem-start-input" required class="form-control">
+                </div>
+                <div class="form-group">
+                    <label>End Date</label>
+                    <input type="date" id="sem-end-input" required class="form-control">
+                </div>
+                <div class="form-group checkbox-group">
+                    <label class="checkbox-label">
+                        <input type="checkbox" id="sem-active-checkbox"> Set as Active Semester
+                    </label>
+                </div>
+                <div class="modal-actions">
+                    <button type="button" class="btn btn-secondary" data-close="semester-modal">Cancel</button>
+                    <button type="submit" class="btn btn-primary">Save Semester</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Create Subject Modal -->
+    <div class="modal hidden" id="subject-modal">
+        <div class="modal-header">
+            <h2>Add Subject</h2>
+            <button class="close-btn" data-close="subject-modal">&times;</button>
+        </div>
+        <div class="modal-body">
+            <form id="subject-form">
+                <div class="form-group">
+                    <label>Subject Name</label>
+                    <input type="text" id="sub-name-input" required class="form-control" placeholder="e.g. Data Structures & Algorithms">
+                </div>
+                <div class="form-group">
+                    <label>Assigned Admin / Faculty</label>
+                    <select id="sub-admin-select" class="form-control"></select>
+                </div>
+                <div class="modal-actions">
+                    <button type="button" class="btn btn-secondary" data-close="subject-modal">Cancel</button>
+                    <button type="submit" class="btn btn-primary">Save Subject</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Toast Notifications -->
+    <div id="toast-container"></div>
+</body>
+</html>
